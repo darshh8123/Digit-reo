@@ -4,7 +4,6 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 import io
-import base64
 from datetime import datetime
 
 # Load the Keras model
@@ -23,19 +22,18 @@ CREATE TABLE IF NOT EXISTS predictions (
     image BLOB
 )
 """)
-conn.commit()
 
 # Function to preprocess the image
 def preprocess_image(image):
-    image = image.convert("L")  # Grayscale
+    image = image.convert("L")  # Convert to grayscale
     image = image.resize((28, 28))  # Resize to 28x28
-    img_array = np.array(image) / 255.0  # Normalize
-    img_array = img_array.reshape(1, 28, 28, 1)  # Add batch and channel dims
+    img_array = np.array(image) / 255.0  # Normalize the image
+    img_array = img_array.reshape(1, 28, 28, 1)  # Add batch and channel dimensions
     return img_array
 
-# Function to insert into DB
+# Function to insert into the DB
 def insert_prediction(predicted_digit, image):
-    # Convert image to bytes
+    # Convert image to binary (BLOB)
     buffered = io.BytesIO()
     image.save(buffered, format="PNG")
     img_bytes = buffered.getvalue()
@@ -49,19 +47,24 @@ def insert_prediction(predicted_digit, image):
 # Streamlit UI
 st.title("🧠 Digit Recognizer with Database")
 
+# File uploader to upload digit image
 uploaded_file = st.file_uploader("Upload a digit image", type=["png", "jpg", "jpeg"])
 
 if uploaded_file:
+    # Open and display the image
     image = Image.open(uploaded_file)
     st.image(image, caption="Uploaded Image", use_column_width=True)
 
+    # Preprocess the image for prediction
     img_input = preprocess_image(image)
+    
+    # Make prediction
     prediction = model.predict(img_input)
     predicted_digit = np.argmax(prediction)
 
     st.success(f"Predicted Digit: {predicted_digit}")
 
-    # Save to DB
+    # Save to DB button
     if st.button("Save to Database"):
         insert_prediction(predicted_digit, image)
         st.success("Saved to database!")
@@ -72,3 +75,5 @@ if st.checkbox("Show Past Predictions"):
     rows = cursor.fetchall()
     for row in rows:
         st.write(f"🕒 {row[0]} → Predicted: {row[1]}")
+
+
