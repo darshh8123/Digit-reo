@@ -2,3 +2,6 @@ streamlit
 tensorflow
 numpy
 sqlite3
+keras
+pillow
+pandas
